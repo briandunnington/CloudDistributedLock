@@ -121,44 +121,5 @@ namespace ExampleApp
             }
             return response;
         }
-
-        [Function("AbandonLock")]
-        public async Task<HttpResponseData> AbandonLock([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
-        {
-            var response = req.CreateResponse();
-            var lockProvider = lockProviderFactory.GetLockProvider();
-            var @lock = await lockProvider.TryAquireLockAsync(LockName); //no using
-            if (@lock.IsAcquired)
-            {
-                response.StatusCode = HttpStatusCode.OK;
-                await response.WriteAsJsonAsync(new
-                {
-                    message = "AbandonLock obtained the lock",
-                    lockId = @lock.LockId,
-                    etag = @lock.ETag,
-                    fencingToken = @lock.FencingToken
-                });
-            }
-            else
-            {
-                @lock.Dispose();
-                response.StatusCode = HttpStatusCode.Conflict;
-                response.WriteString("AbandonLock failed to obtain the lock immediately");
-            }
-            return response;
-        }
-
-        [Function("Memory")]
-        public HttpResponseData Memory([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
-        {
-            var d = new Dictionary<int, string>();
-            var s = "some string";
-            for (var i = 0; i < 20000; i++)
-            {
-                d.Add(i, s += i.ToString());
-            }
-            GC.Collect();
-            return req.CreateResponse(HttpStatusCode.OK);
-        }
     }
 }

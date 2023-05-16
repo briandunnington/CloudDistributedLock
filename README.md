@@ -5,7 +5,7 @@ Provides a distributed locking mechanism based on Azure Cosmos DB to synchronize
 
 The library works by leveraging Azure Cosmos DB's optimistic concurrency and time-to-live (TTL) features. When code tries to acquire a lock, an attempt is made to write a record to the database. If the record already exists, Cosmos will prevent the new record from being written, indicating that the lock is already held by another process. If the record doesnt exist, the record will be successfully written and the lock acquired.
 
-While the lock is held, the database record will be periodically updated indicating that the lock is stil in use. If the holder process crashes, goes offline, or otherwise abandons the lock, the updates will stop and Cosmos's TTL feature will delete the record after a preset amount of time, ensuring that the lock does not get permanently stuck in a held state.
+While the lock is held, the database record will be periodically updated indicating that the lock is still in use. If the holder process crashes, goes offline, or otherwise abandons the lock, the updates will stop and Cosmos's TTL feature will delete the record after a preset amount of time, ensuring that the lock does not get permanently stuck in a held state.
 
 Each lock has a unique value (id) so that you can perform very granular locks (on a specific username vs the whole Users collection). Since the datbase is a shared resource, you can use these locks across processes, across machines, and even across different applications to synchronize work.
 
