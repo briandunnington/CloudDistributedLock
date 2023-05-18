@@ -1,13 +1,13 @@
 ﻿namespace CloudDistributedLock
 {
-    public interface ICloudDistributedLock
+    public interface ICloudDistributedLockProvider
     {
         Task<CloudDistributedLock> TryAquireLockAsync(string name);
 
         Task<CloudDistributedLock> AcquireLockAsync(string name, TimeSpan? timeout = default);
     }
 
-    public class CloudDistributedLockProvider : ICloudDistributedLock
+    public class CloudDistributedLockProvider : ICloudDistributedLockProvider
     {
         private readonly CloudDistributedLockProviderOptions options;
         private readonly CosmosLockClient cosmosLockClient;
