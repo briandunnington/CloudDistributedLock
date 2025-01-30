@@ -14,7 +14,7 @@ namespace CloudDistributedLock
             this.container = options.CosmosClient!.GetContainer(options.DatabaseName, options.ContainerName);
         }
 
-        public async Task<ItemResponse<LockRecord>?> TryAquireLockAsync(string name)
+        public async Task<ItemResponse<LockRecord>?> TryAcquireLockAsync(string name)
         {
             try
             {
