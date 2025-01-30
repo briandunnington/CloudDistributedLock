@@ -22,7 +22,7 @@ namespace ExampleApp
         {
             var response = req.CreateResponse();
             var lockProvider = lockProviderFactory.GetLockProvider();
-            using var @lock = await lockProvider.TryAquireLockAsync(LockName);
+            using var @lock = await lockProvider.TryAcquireLockAsync(LockName);
             if (@lock.IsAcquired)
             {
                 response.StatusCode = HttpStatusCode.OK;
@@ -50,7 +50,7 @@ namespace ExampleApp
         {
             var response = req.CreateResponse();
             var lockProvider = lockProviderFactory.GetLockProvider();
-            using var @lock = await lockProvider.TryAquireLockAsync(OtherLockName);
+            using var @lock = await lockProvider.TryAcquireLockAsync(OtherLockName);
             if (@lock.IsAcquired)
             {
                 response.StatusCode = HttpStatusCode.OK;

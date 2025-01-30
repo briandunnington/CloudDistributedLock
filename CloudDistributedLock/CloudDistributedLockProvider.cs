@@ -2,7 +2,7 @@
 {
     public interface ICloudDistributedLockProvider
     {
-        Task<CloudDistributedLock> TryAquireLockAsync(string name);
+        Task<CloudDistributedLock> TryAcquireLockAsync(string name);
 
         Task<CloudDistributedLock> AcquireLockAsync(string name, TimeSpan? timeout = default);
     }
@@ -21,12 +21,12 @@
         public async Task<CloudDistributedLock> AcquireLockAsync(string name, TimeSpan? timeout = null)
         {
             using var cancellationTokenSource = timeout.HasValue ? new CancellationTokenSource(timeout.Value) : new CancellationTokenSource();
-            return await ContinuallyTryAquireLockAsync(name, cancellationTokenSource.Token);
+            return await ContinuallyTryAcquireLockAsync(name, cancellationTokenSource.Token);
         }
 
-        public async Task<CloudDistributedLock> TryAquireLockAsync(string name)
+        public async Task<CloudDistributedLock> TryAcquireLockAsync(string name)
         {
-            var item = await cosmosLockClient.TryAquireLockAsync(name);
+            var item = await cosmosLockClient.TryAcquireLockAsync(name);
             if (item != null)
             {
                 return CloudDistributedLock.CreateAcquiredLock(cosmosLockClient, item);
@@ -37,12 +37,12 @@
             }
         }
 
-        private async Task<CloudDistributedLock> ContinuallyTryAquireLockAsync(string name, CancellationToken cancellationToken)
+        private async Task<CloudDistributedLock> ContinuallyTryAcquireLockAsync(string name, CancellationToken cancellationToken)
         {
             CloudDistributedLock? @lock;
             do
             {
-                @lock = await TryAquireLockAsync(name);
+                @lock = await TryAcquireLockAsync(name);
                 if (!@lock.IsAcquired && !cancellationToken.IsCancellationRequested)
                 {
                     await Task.Delay(options.RetryInterval);

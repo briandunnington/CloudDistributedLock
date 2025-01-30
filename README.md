@@ -1,4 +1,5 @@
 # CloudDistributedLock
+
 Provides a distributed locking mechanism based on Azure Cosmos DB to synchronize work across different cloud services.
 
 ## Concepts
@@ -17,7 +18,7 @@ You can either try to acquire a lock and return immediately if the lock cannot b
 
 ```csharp
 var lockProvider = lockProviderFactory.GetLockProvider();
-using var @lock = await lockProvider.TryAquireLockAsync(LockName);
+using var @lock = await lockProvider.TryAcquireLockAsync(LockName);
 if (@lock.IsAcquired)
 {
     // do your critical work here
@@ -32,7 +33,7 @@ else
 
 ```csharp
 var lockProvider = lockProviderFactory.GetLockProvider();
-using var @lock = await lockProvider.AquireLockAsync(LockName);
+using var @lock = await lockProvider.AcquireLockAsync(LockName);
 if (@lock.IsAcquired)
 {
     // do your critical work here
@@ -47,7 +48,7 @@ else
 
 ```csharp
 var lockProvider = lockProviderFactory.GetLockProvider();
-using var @lock = await lockProvider.AquireLockAsync(LockName, TimeSpan.FromSeconds(2));
+using var @lock = await lockProvider.AcquireLockAsync(LockName, TimeSpan.FromSeconds(2));
 if (@lock.IsAcquired)
 {
     // do your critical work here
@@ -82,10 +83,10 @@ services.AddCloudDistributedLock("CustomerLock", config["CosmosEndpoint"], confi
 var lockProvider = lockProviderFactory.GetLockProvider("InventoryLock");
 ```
 
-In all cases, registering with DI will make  `ICloudDistributedLockProviderFactory` available to be injected. You can take a dependency on it in your app code constructors with:
+In all cases, registering with DI will make `ICloudDistributedLockProviderFactory` available to be injected. You can take a dependency on it in your app code constructors with:
 
 ```csharp
-public MyCode(ICloudDistributedLockProviderFactory lockProviderFactory) 
+public MyCode(ICloudDistributedLockProviderFactory lockProviderFactory)
 {
     //...
 }
@@ -95,7 +96,7 @@ If the critical work you are locking around requires updating external systems, 
 
 ```csharp
 var lockProvider = lockProviderFactory.GetLockProvider();
-using var @lock = await lockProvider.TryAquireLockAsync(LockName);
+using var @lock = await lockProvider.TryAcquireLockAsync(LockName);
 if (@lock.IsAcquired)
 {
     // use the fencing token
