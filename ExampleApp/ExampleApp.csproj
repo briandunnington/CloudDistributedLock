@@ -12,7 +12,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.10.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CloudDistributedLock\CloudDistributedLock.csproj" />
+    <ProjectReference Include="..\Element.CloudDistributedLock\Element.CloudDistributedLock.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
