@@ -1,4 +1,4 @@
-using CloudDistributedLock;
+using Element.CloudDistributedLock;
 using Microsoft.Extensions.Hosting;
 
 var host = new HostBuilder()
