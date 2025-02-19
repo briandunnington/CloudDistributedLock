@@ -7,6 +7,9 @@ var host = new HostBuilder()
     {
         var config = hbc.Configuration;
         services.AddCloudDistributedLock(config["CosmosEndpoint"], config["CosmosKey"], config["DatabaseName"], 5);
+
+        // Use this if you want the internal CosmosClient used by the locking library to use managed identity instead of a key
+        //services.AddCloudDistributedLock(new CosmosClient(config["CosmosEndpoint"], new DefaultAzureCredential()), config["DatabaseName"], 5);
     })
     .Build();
 
