@@ -71,11 +71,12 @@ namespace Element.CloudDistributedLock
             timer = new Timer(KeepAlive, null, dueIn, Timeout.InfiniteTimeSpan);
         }
 
-        private async Task ReleaseLock()
+        private void ReleaseLock()
         {
             if (cosmosLockClient == null || currentItem == null) return;
 
-            await cosmosLockClient.ReleaseLockAsync(currentItem);
+            // we want to do this synchronously to ensure the lock release/disposal is deterministic
+            cosmosLockClient.ReleaseLockAsync(currentItem).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public void Dispose()
@@ -88,11 +89,11 @@ namespace Element.CloudDistributedLock
         {
             if (!isDisposed)
             {
+                isDisposed = true;
+
                 // the lock in the DB is essentially an unmanaged resource
                 timer?.Dispose();
-                _ = ReleaseLock();
-
-                isDisposed = true;
+                ReleaseLock();
             }
         }
 
