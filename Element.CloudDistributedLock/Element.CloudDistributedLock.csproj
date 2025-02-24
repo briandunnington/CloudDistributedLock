@@ -8,7 +8,7 @@
 
   <PropertyGroup>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <VersionPrefix>1.0.0</VersionPrefix>
+    <VersionPrefix>1.1.0</VersionPrefix>
     <Title>Element.CloudDistributedLock</Title>
     <Authors>Brian Dunnington</Authors>
     <Description>
@@ -18,6 +18,7 @@
     <PackageProjectUrl>https://github.com/briandunnington/CloudDistributedLock</PackageProjectUrl>
     <RepositoryUrl>https://github.com/briandunnington/CloudDistributedLock</RepositoryUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>Migrated to .NET 8</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
