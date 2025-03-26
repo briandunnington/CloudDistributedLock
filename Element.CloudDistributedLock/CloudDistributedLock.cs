@@ -12,11 +12,7 @@ namespace Element.CloudDistributedLock
         private Timer? timer;
         private bool isDisposed;
 
-
-        public static CloudDistributedLock CreateUnacquiredLock()
-        {
-            return new CloudDistributedLock();
-        }
+        public static readonly CloudDistributedLock UnacquiredLock = new CloudDistributedLock();
 
         public static CloudDistributedLock CreateAcquiredLock(CosmosLockClient cosmosLockClient, ItemResponse<LockRecord> item)
         {
