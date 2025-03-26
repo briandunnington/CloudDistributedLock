@@ -27,14 +27,10 @@ namespace Element.CloudDistributedLock
                 var lockRecord = new LockRecord { id = safeLockName, name = name, providerName = options.ProviderName, lockObtainedAt = now, lockLastRenewedAt = now, _ttl = options.TTL };
                 return await container.CreateItemAsync(lockRecord, new PartitionKey(lockRecord.id));
             }
-            catch (CosmosException ex)
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
             {
-                if (ex.StatusCode == HttpStatusCode.Conflict)
-                {
-                    // lock already held by someone else
-                    return null;
-                }
-                throw;
+                // lock already held by someone else
+                return null;
             }
         }
 
@@ -46,15 +42,11 @@ namespace Element.CloudDistributedLock
                 lockRecord.lockLastRenewedAt = DateTimeOffset.UtcNow;
                 return await container.UpsertItemAsync(lockRecord, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag });
             }
-            catch (CosmosException ex)
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
             {
-                if (ex.StatusCode == HttpStatusCode.PreconditionFailed)
-                {
-                    // someone else already acquired a new lock, which means our lock was already released
-                    return null;
-                }
-                throw;
-            }
+                // someone else already acquired a new lock, which means our lock was already released
+                return null;
+        }
         }
 
         public async Task ReleaseLockAsync(ItemResponse<LockRecord> item)
@@ -64,12 +56,9 @@ namespace Element.CloudDistributedLock
                 var lockRecord = item.Resource;
                 _ = await container.DeleteItemAsync<LockRecord>(lockRecord.id, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag });
             }
-            catch (CosmosException ex)
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
             {
-                if (ex.StatusCode == HttpStatusCode.PreconditionFailed)
-                {
-                    // someone else already acquired a new lock, which means our lock was already released
-                }
+                // someone else already acquired a new lock, which means our lock was already released
             }
         }
 
