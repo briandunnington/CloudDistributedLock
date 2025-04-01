@@ -8,7 +8,7 @@ The library works by leveraging Azure Cosmos DB's optimistic concurrency and tim
 
 While the lock is held, the database record will be periodically updated indicating that the lock is still in use. If the holder process crashes, goes offline, or otherwise abandons the lock, the updates will stop and Cosmos's TTL feature will delete the record after a preset amount of time, ensuring that the lock does not get permanently stuck in a held state.
 
-Each lock has a unique value (id) so that you can perform very granular locks (on a specific username vs the whole Users collection). Since the datbase is a shared resource, you can use these locks across processes, across machines, and even across different applications to synchronize work.
+Each lock has a unique value (id) so that you can perform very granular locks (on a specific username vs the whole Users collection). Since the database is a shared resource, you can use these locks across processes, across machines, and even across different applications to synchronize work.
 
 ## Usage
 
