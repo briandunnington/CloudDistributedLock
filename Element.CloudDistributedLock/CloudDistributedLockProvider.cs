@@ -33,7 +33,7 @@
             }
             else
             {
-                return CloudDistributedLock.CreateUnacquiredLock();
+                return CloudDistributedLock.UnacquiredLock;
             }
         }
 
