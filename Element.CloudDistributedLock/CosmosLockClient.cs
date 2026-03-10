@@ -60,6 +60,10 @@ namespace Element.CloudDistributedLock
             {
                 // someone else already acquired a new lock, which means our lock was already released
             }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                // lock record already expired via TTL
+            }
         }
 
 
