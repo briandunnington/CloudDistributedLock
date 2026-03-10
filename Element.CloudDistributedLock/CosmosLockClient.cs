@@ -38,8 +38,16 @@ namespace Element.CloudDistributedLock
         {
             try
             {
-                var lockRecord = item.Resource;
-                lockRecord.lockLastRenewedAt = DateTimeOffset.UtcNow;
+                var existing = item.Resource;
+                var lockRecord = new LockRecord
+                {
+                    id = existing.id,
+                    name = existing.name,
+                    providerName = existing.providerName,
+                    lockObtainedAt = existing.lockObtainedAt,
+                    lockLastRenewedAt = DateTimeOffset.UtcNow,
+                    _ttl = existing._ttl
+                };
                 return await container.ReplaceItemAsync(lockRecord, lockRecord.id, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag }).ConfigureAwait(false);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
