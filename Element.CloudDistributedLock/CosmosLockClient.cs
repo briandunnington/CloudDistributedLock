@@ -3,7 +3,14 @@ using System.Net;
 
 namespace Element.CloudDistributedLock
 {
-    public class CosmosLockClient
+    internal interface ICosmosLockClient
+    {
+        Task<ItemResponse<LockRecord>?> TryAcquireLockAsync(string name);
+        Task<ItemResponse<LockRecord>?> RenewLockAsync(ItemResponse<LockRecord> item);
+        Task ReleaseLockAsync(ItemResponse<LockRecord> item);
+    }
+
+    internal class CosmosLockClient : ICosmosLockClient
     {
         private readonly CloudDistributedLockProviderOptions options;
         private readonly Container container;
@@ -25,7 +32,7 @@ namespace Element.CloudDistributedLock
                 var safeLockName = GenerateSafeLockName(name);
                 var now = DateTimeOffset.UtcNow;
                 var lockRecord = new LockRecord { id = safeLockName, name = name, providerName = options.ProviderName, lockObtainedAt = now, lockLastRenewedAt = now, _ttl = options.TTL };
-                return await container.CreateItemAsync(lockRecord, new PartitionKey(lockRecord.id));
+                return await container.CreateItemAsync(lockRecord, new PartitionKey(lockRecord.id)).ConfigureAwait(false);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
             {
@@ -38,15 +45,28 @@ namespace Element.CloudDistributedLock
         {
             try
             {
-                var lockRecord = item.Resource;
-                lockRecord.lockLastRenewedAt = DateTimeOffset.UtcNow;
-                return await container.UpsertItemAsync(lockRecord, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag });
+                var existing = item.Resource;
+                var lockRecord = new LockRecord
+                {
+                    id = existing.id,
+                    name = existing.name,
+                    providerName = existing.providerName,
+                    lockObtainedAt = existing.lockObtainedAt,
+                    lockLastRenewedAt = DateTimeOffset.UtcNow,
+                    _ttl = existing._ttl
+                };
+                return await container.ReplaceItemAsync(lockRecord, lockRecord.id, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag }).ConfigureAwait(false);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
             {
                 // someone else already acquired a new lock, which means our lock was already released
                 return null;
-        }
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                // lock record already expired via TTL
+                return null;
+            }
         }
 
         public async Task ReleaseLockAsync(ItemResponse<LockRecord> item)
@@ -54,11 +74,15 @@ namespace Element.CloudDistributedLock
             try
             {
                 var lockRecord = item.Resource;
-                _ = await container.DeleteItemAsync<LockRecord>(lockRecord.id, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag });
+                _ = await container.DeleteItemAsync<LockRecord>(lockRecord.id, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag }).ConfigureAwait(false);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
             {
                 // someone else already acquired a new lock, which means our lock was already released
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                // lock record already expired via TTL
             }
         }
 

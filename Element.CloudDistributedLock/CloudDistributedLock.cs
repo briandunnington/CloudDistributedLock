@@ -5,20 +5,21 @@ namespace Element.CloudDistributedLock
     public class CloudDistributedLock : IDisposable
     {
         private readonly TimeSpan keepAliveBuffer = TimeSpan.FromSeconds(1); // 1 second is the smallest Cosmos TTL increment
-        private readonly CosmosLockClient? cosmosLockClient;
-        private ItemResponse<LockRecord>? currentItem;
+        private readonly ICosmosLockClient? cosmosLockClient;
+        private volatile ItemResponse<LockRecord>? latestItem;
         private readonly string? lockId;
         private readonly long fencingToken;
-        private Timer? timer;
-        private bool isDisposed;
+        private readonly CancellationTokenSource? cts;
+        private readonly Task? keepAliveTask;
+        private int disposed;
 
 
-        public static CloudDistributedLock CreateUnacquiredLock()
+        internal static CloudDistributedLock CreateUnacquiredLock()
         {
             return new CloudDistributedLock();
         }
 
-        public static CloudDistributedLock CreateAcquiredLock(CosmosLockClient cosmosLockClient, ItemResponse<LockRecord> item)
+        internal static CloudDistributedLock CreateAcquiredLock(ICosmosLockClient cosmosLockClient, ItemResponse<LockRecord> item)
         {
             return new CloudDistributedLock(cosmosLockClient, item);
         }
@@ -27,56 +28,57 @@ namespace Element.CloudDistributedLock
         {
         }
 
-        private CloudDistributedLock(CosmosLockClient cosmosLockClient, ItemResponse<LockRecord> item)
+        private CloudDistributedLock(ICosmosLockClient cosmosLockClient, ItemResponse<LockRecord> item)
         {
             this.cosmosLockClient = cosmosLockClient;
+            latestItem = item;
             fencingToken = SessionTokenParser.Parse(item.Headers.Session);
             lockId = $"{item.Resource.providerName}:{item.Resource.id}:{fencingToken}:{item.Resource.lockObtainedAt.Ticks}";
-            InitializeKeepAlive(item);
+            cts = new CancellationTokenSource();
+            keepAliveTask = KeepAliveLoop(item, cts.Token);
         }
 
-        public bool IsAcquired => currentItem != null;
+        public bool IsAcquired => latestItem != null;
 
         public string? LockId => lockId;
 
         public long FencingToken => fencingToken;
 
-        public string? ETag => currentItem?.ETag;
+        public string? ETag => latestItem?.ETag;
 
-        async void KeepAlive(object? state)
+        private async Task KeepAliveLoop(ItemResponse<LockRecord> item, CancellationToken cancellationToken)
         {
-            if (!IsAcquired || isDisposed || cosmosLockClient == null || currentItem == null) return;
-
-            var updatedItem = await cosmosLockClient.RenewLockAsync(currentItem);
-            if (updatedItem != null)
+            var current = item;
+            while (!cancellationToken.IsCancellationRequested)
             {
-                InitializeKeepAlive(updatedItem);
+                try
+                {
+                    var lockRecord = current.Resource;
+                    var lockExpiresAt = lockRecord!.lockLastRenewedAt + TimeSpan.FromSeconds(lockRecord._ttl);
+                    var dueIn = lockExpiresAt - DateTimeOffset.UtcNow - keepAliveBuffer;
+
+                    if (dueIn > TimeSpan.Zero)
+                    {
+                        await Task.Delay(dueIn, cancellationToken).ConfigureAwait(false);
+                    }
+
+                    var updatedItem = await cosmosLockClient!.RenewLockAsync(current).ConfigureAwait(false);
+                    if (updatedItem == null) return;
+
+                    current = updatedItem;
+                    latestItem = updatedItem;
+                }
+                catch (OperationCanceledException)
+                {
+                    // dispose was called, signaling the keep-alive loop to stop; the lock will be released after this exits
+                    return;
+                }
+                catch
+                {
+                    // swallow to prevent unobserved task exceptions; lock will expire via TTL
+                    return;
+                }
             }
-            else
-            {
-                // someone else already acquired a new lock, which means our lock was already released
-            }
-        }
-
-        void InitializeKeepAlive(ItemResponse<LockRecord> item)
-        {
-            currentItem = item;
-
-            if (!IsAcquired || isDisposed || item == null) return;
-
-            var lockRecord = currentItem.Resource;
-            var lockExpiresAt = lockRecord!.lockLastRenewedAt + TimeSpan.FromSeconds(lockRecord._ttl);
-            var dueIn = lockExpiresAt - DateTimeOffset.UtcNow - keepAliveBuffer;  // renew the lock right before it expires if the reference is still held
-            if (dueIn < TimeSpan.Zero) return;
-            timer = new Timer(KeepAlive, null, dueIn, Timeout.InfiniteTimeSpan);
-        }
-
-        private void ReleaseLock()
-        {
-            if (cosmosLockClient == null || currentItem == null) return;
-
-            // we want to do this synchronously to ensure the lock release/disposal is deterministic
-            cosmosLockClient.ReleaseLockAsync(currentItem).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         public void Dispose()
@@ -87,19 +89,23 @@ namespace Element.CloudDistributedLock
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!isDisposed)
+            if (disposing)
             {
-                isDisposed = true;
-
-                // the lock in the DB is essentially an unmanaged resource
-                timer?.Dispose();
+                if (cts == null || Interlocked.Exchange(ref disposed, 1) != 0) return;
+                cts.Cancel();
+                keepAliveTask?.GetAwaiter().GetResult();
+                cts.Dispose();
                 ReleaseLock();
             }
         }
 
-        ~CloudDistributedLock()
+        private void ReleaseLock()
         {
-            Dispose(disposing: false);
+            var item = latestItem;
+            if (cosmosLockClient == null || item == null) return;
+
+            // we want to do this synchronously to ensure the lock release/disposal is deterministic
+            cosmosLockClient.ReleaseLockAsync(item).ConfigureAwait(false).GetAwaiter().GetResult();
         }
     }
 }
