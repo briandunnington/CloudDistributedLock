@@ -25,7 +25,7 @@ namespace Element.CloudDistributedLock
                 var safeLockName = GenerateSafeLockName(name);
                 var now = DateTimeOffset.UtcNow;
                 var lockRecord = new LockRecord { id = safeLockName, name = name, providerName = options.ProviderName, lockObtainedAt = now, lockLastRenewedAt = now, _ttl = options.TTL };
-                return await container.CreateItemAsync(lockRecord, new PartitionKey(lockRecord.id));
+                return await container.CreateItemAsync(lockRecord, new PartitionKey(lockRecord.id)).ConfigureAwait(false);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.Conflict)
             {
@@ -40,7 +40,7 @@ namespace Element.CloudDistributedLock
             {
                 var lockRecord = item.Resource;
                 lockRecord.lockLastRenewedAt = DateTimeOffset.UtcNow;
-                return await container.UpsertItemAsync(lockRecord, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag });
+                return await container.UpsertItemAsync(lockRecord, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag }).ConfigureAwait(false);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
             {
@@ -54,7 +54,7 @@ namespace Element.CloudDistributedLock
             try
             {
                 var lockRecord = item.Resource;
-                _ = await container.DeleteItemAsync<LockRecord>(lockRecord.id, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag });
+                _ = await container.DeleteItemAsync<LockRecord>(lockRecord.id, new PartitionKey(lockRecord.id), new ItemRequestOptions { IfMatchEtag = item.ETag }).ConfigureAwait(false);
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
             {
