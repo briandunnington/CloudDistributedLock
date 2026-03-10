@@ -7,15 +7,21 @@
         Task<CloudDistributedLock> AcquireLockAsync(string name, TimeSpan? timeout = default);
     }
 
-    public class CloudDistributedLockProvider : ICloudDistributedLockProvider
+    internal class CloudDistributedLockProvider : ICloudDistributedLockProvider
     {
         private readonly CloudDistributedLockProviderOptions options;
-        private readonly CosmosLockClient cosmosLockClient;
+        private readonly ICosmosLockClient cosmosLockClient;
 
         public CloudDistributedLockProvider(CloudDistributedLockProviderOptions options)
         {
             this.options = options;
             cosmosLockClient = new CosmosLockClient(options);
+        }
+
+        internal CloudDistributedLockProvider(ICosmosLockClient cosmosLockClient, CloudDistributedLockProviderOptions options)
+        {
+            this.options = options;
+            this.cosmosLockClient = cosmosLockClient;
         }
 
         public async Task<CloudDistributedLock> AcquireLockAsync(string name, TimeSpan? timeout = null)

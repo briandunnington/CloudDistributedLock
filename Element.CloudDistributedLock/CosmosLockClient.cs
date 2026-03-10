@@ -3,7 +3,14 @@ using System.Net;
 
 namespace Element.CloudDistributedLock
 {
-    public class CosmosLockClient
+    internal interface ICosmosLockClient
+    {
+        Task<ItemResponse<LockRecord>?> TryAcquireLockAsync(string name);
+        Task<ItemResponse<LockRecord>?> RenewLockAsync(ItemResponse<LockRecord> item);
+        Task ReleaseLockAsync(ItemResponse<LockRecord> item);
+    }
+
+    internal class CosmosLockClient : ICosmosLockClient
     {
         private readonly CloudDistributedLockProviderOptions options;
         private readonly Container container;

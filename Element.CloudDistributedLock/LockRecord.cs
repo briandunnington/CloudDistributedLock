@@ -1,6 +1,6 @@
 ﻿namespace Element.CloudDistributedLock
 {
-    public class LockRecord
+    internal class LockRecord
     {
         public string? id { get; set; }
         public string? name { get; set; }

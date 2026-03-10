@@ -5,7 +5,7 @@ namespace Element.CloudDistributedLock
     public class CloudDistributedLock : IDisposable
     {
         private readonly TimeSpan keepAliveBuffer = TimeSpan.FromSeconds(1); // 1 second is the smallest Cosmos TTL increment
-        private readonly CosmosLockClient? cosmosLockClient;
+        private readonly ICosmosLockClient? cosmosLockClient;
         private volatile ItemResponse<LockRecord>? latestItem;
         private readonly string? lockId;
         private readonly long fencingToken;
@@ -14,12 +14,12 @@ namespace Element.CloudDistributedLock
         private int disposed;
 
 
-        public static CloudDistributedLock CreateUnacquiredLock()
+        internal static CloudDistributedLock CreateUnacquiredLock()
         {
             return new CloudDistributedLock();
         }
 
-        public static CloudDistributedLock CreateAcquiredLock(CosmosLockClient cosmosLockClient, ItemResponse<LockRecord> item)
+        internal static CloudDistributedLock CreateAcquiredLock(ICosmosLockClient cosmosLockClient, ItemResponse<LockRecord> item)
         {
             return new CloudDistributedLock(cosmosLockClient, item);
         }
@@ -28,7 +28,7 @@ namespace Element.CloudDistributedLock
         {
         }
 
-        private CloudDistributedLock(CosmosLockClient cosmosLockClient, ItemResponse<LockRecord> item)
+        private CloudDistributedLock(ICosmosLockClient cosmosLockClient, ItemResponse<LockRecord> item)
         {
             this.cosmosLockClient = cosmosLockClient;
             latestItem = item;
