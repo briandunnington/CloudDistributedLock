@@ -48,7 +48,15 @@
                 }
 
                 @lock.Dispose();
-                await Task.Delay(options.RetryInterval, cancellationToken).ConfigureAwait(false);
+
+                try
+                {
+                    await Task.Delay(options.RetryInterval, cancellationToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    return CloudDistributedLock.CreateUnacquiredLock();
+                }
             }
 
             return CloudDistributedLock.CreateUnacquiredLock();
