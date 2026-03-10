@@ -208,7 +208,7 @@ namespace Element.CloudDistributedLock.Tests
             // wait for the renewal to be attempted and the loop to exit
             await Task.Delay(TimeSpan.FromSeconds(3));
 
-            // should have been called exactly once — renewal returned null so the loop stopped
+            // should have been called exactly once - renewal returned null so the loop stopped
             Assert.Equal(1, renewCallCount);
         }
 
@@ -225,7 +225,7 @@ namespace Element.CloudDistributedLock.Tests
             var lockRecord = CreateLockRecord(ttl: 2);
             var item = CreateMockItemResponse(lockRecord);
 
-            // should not throw — the exception is swallowed inside the keep-alive loop
+            // should not throw - the exception is swallowed inside the keep-alive loop
             using var @lock = CloudDistributedLock.CreateAcquiredLock(cosmosLockClient, item);
             await Task.Delay(TimeSpan.FromSeconds(3));
 
