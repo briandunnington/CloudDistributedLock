@@ -70,6 +70,7 @@ namespace Element.CloudDistributedLock
                 }
                 catch (OperationCanceledException)
                 {
+                    // dispose was called, signaling the keep-alive loop to stop; the lock will be released after this exits
                     return;
                 }
                 catch
