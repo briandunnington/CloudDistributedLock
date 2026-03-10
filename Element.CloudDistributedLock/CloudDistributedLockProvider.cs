@@ -21,12 +21,12 @@
         public async Task<CloudDistributedLock> AcquireLockAsync(string name, TimeSpan? timeout = null)
         {
             using var cancellationTokenSource = timeout.HasValue ? new CancellationTokenSource(timeout.Value) : new CancellationTokenSource();
-            return await ContinuallyTryAcquireLockAsync(name, cancellationTokenSource.Token);
+            return await ContinuallyTryAcquireLockAsync(name, cancellationTokenSource.Token).ConfigureAwait(false);
         }
 
         public async Task<CloudDistributedLock> TryAcquireLockAsync(string name)
         {
-            var item = await cosmosLockClient.TryAcquireLockAsync(name);
+            var item = await cosmosLockClient.TryAcquireLockAsync(name).ConfigureAwait(false);
             if (item != null)
             {
                 return CloudDistributedLock.CreateAcquiredLock(cosmosLockClient, item);
@@ -41,7 +41,7 @@
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                var @lock = await TryAcquireLockAsync(name);
+                var @lock = await TryAcquireLockAsync(name).ConfigureAwait(false);
                 if (@lock.IsAcquired)
                 {
                     return @lock;
