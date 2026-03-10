@@ -106,10 +106,5 @@ namespace Element.CloudDistributedLock
             // we want to do this synchronously to ensure the lock release/disposal is deterministic
             cosmosLockClient.ReleaseLockAsync(item).ConfigureAwait(false).GetAwaiter().GetResult();
         }
-
-        ~CloudDistributedLock()
-        {
-            Dispose(disposing: false);
-        }
     }
 }
