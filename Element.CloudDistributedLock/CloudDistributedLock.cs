@@ -68,7 +68,15 @@ namespace Element.CloudDistributedLock
             var lockExpiresAt = lockRecord!.lockLastRenewedAt + TimeSpan.FromSeconds(lockRecord._ttl);
             var dueIn = lockExpiresAt - DateTimeOffset.UtcNow - keepAliveBuffer;  // renew the lock right before it expires if the reference is still held
             if (dueIn < TimeSpan.Zero) return;
-            timer = new Timer(KeepAlive, null, dueIn, Timeout.InfiniteTimeSpan);
+
+            if (timer != null)
+            {
+                timer.Change(dueIn, Timeout.InfiniteTimeSpan);
+            }
+            else
+            {
+                timer = new Timer(KeepAlive, null, dueIn, Timeout.InfiniteTimeSpan);
+            }
         }
 
         private void ReleaseLock()
@@ -91,8 +99,12 @@ namespace Element.CloudDistributedLock
             {
                 isDisposed = true;
 
-                // the lock in the DB is essentially an unmanaged resource
-                timer?.Dispose();
+                if (disposing)
+                {
+                    timer?.Dispose();
+                }
+
+                // best effort to release the lock (not really an unmanaged resource, but we want to ensure the lock is released in a timely manner when the reference is disposed)
                 ReleaseLock();
             }
         }
