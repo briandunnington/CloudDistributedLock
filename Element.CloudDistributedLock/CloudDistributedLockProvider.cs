@@ -39,17 +39,19 @@
 
         private async Task<CloudDistributedLock> ContinuallyTryAcquireLockAsync(string name, CancellationToken cancellationToken)
         {
-            CloudDistributedLock? @lock;
-            do
+            while (!cancellationToken.IsCancellationRequested)
             {
-                @lock = await TryAcquireLockAsync(name);
-                if (!@lock.IsAcquired && !cancellationToken.IsCancellationRequested)
+                var @lock = await TryAcquireLockAsync(name);
+                if (@lock.IsAcquired)
                 {
-                    await Task.Delay(options.RetryInterval);
+                    return @lock;
                 }
+
+                @lock.Dispose();
+                await Task.Delay(options.RetryInterval, cancellationToken).ConfigureAwait(false);
             }
-            while (!@lock.IsAcquired && !cancellationToken.IsCancellationRequested);
-            return @lock;
+
+            return CloudDistributedLock.CreateUnacquiredLock();
         }
     }
 }
